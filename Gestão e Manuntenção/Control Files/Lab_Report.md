@@ -134,25 +134,21 @@ ALTER DATABASE BACKUP CONTROLFILE TO '/home/oracle/control_file.bkp';
 -- Database altered.
 ```
 
-> 📸 **Print 03** — `03-backup-controlfile-binario-confirmacao.png`  
-> Capturar: o comando executado com `Database altered.` e, em seguida, `!ls -lh /home/oracle/control_file.bkp` confirmando o arquivo físico criado no SO.
+> <img width="670" height="133" alt="image" src="https://github.com/user-attachments/assets/44e4b01a-dc55-43c7-bd7e-04f83c191835" />
+
 
 Este arquivo é uma cópia exata do control file binário. Em caso de perda, basta copiar para o local correto e reiniciar.
 
 **Método 2 — Backup em trace (script SQL de recriação):**
 
 ```sql
--- ERRO cometido: sintaxe incorreta
-ALTER DATABASE BACKUP TO TRACE;
--- ORA-00905: missing keyword
-
--- Sintaxe correta:
 ALTER DATABASE BACKUP CONTROLFILE TO TRACE;
 -- Database altered.
 ```
 
-> 📸 **Print 04** — `04-ora-00905-sintaxe-incorreta-e-correcao.png`  
-> Capturar: o erro `ORA-00905` seguido da execução correta com `CONTROLFILE`. Mostra o erro real cometido e a correção — mais honesto do que omitir a tentativa errada.
+> <img width="818" height="78" alt="image" src="https://github.com/user-attachments/assets/dfe3c23f-1144-487c-b2f5-69675333ee84" />
+
+
 
 O Oracle salva o script de recriação no diretório de trace (`$ORACLE_BASE/diag/rdbms/orcl/orcl/trace/`). O nome exato do arquivo aparece no Alert Log.
 
@@ -173,20 +169,25 @@ Ao tentar executar qualquer DDL, o Oracle detectou a ausência do arquivo:
 
 ```sql
 CREATE TABLESPACE TESTE_CTL DATAFILE '/u02/oradata/my_datafile5.dbf';
--- ORA-00210: cannot open the specified control file
--- ORA-00202: control file: '/u02/oradata/ORCL/control01.ctl'
--- ORA-27041: unable to open file
+-- ORA-01119: error in creating database file '/u02/oradata/my_datafile5.dbf'
+-- ORA-17610: file '/u02/oradata/my_datafile5.dbf' does not exist and no size specified
+-- ORA-27037: unable to obtain file status
 -- Linux-x86_64 Error: 2: No such file or directory
+-- Additional information: 7
+
 ```
 
-> 📸 **Print 05** — `05-ora-00210-control-file-ausente.png`  
-> Capturar: o erro completo `ORA-00210` / `ORA-00202` / `ORA-27041`. Este é o erro que qualquer DBA reconhece imediatamente em produção — vale destacar bem no portfólio.
+> <img width="619" height="174" alt="image" src="https://github.com/user-attachments/assets/57601756-675f-4788-9ad2-d0ff443efb96" />
+
 
 Com `ORA-00210` ativo, `SHUTDOWN IMMEDIATE` também falha — a instância está inoperável:
 
 ```sql
 SHUTDOWN IMMEDIATE;
--- ORA-00210: cannot open the specified control file (mesmo erro)
+-- ORA-00210: cannot open the specified control file
+-- ORA-00202: control file: '/u02/oradata/ORCL/control01.ctl'
+-- ORA-27041: unable to open file
+-- Linux-x86_64 Error: 2: No such file or directory
 
 -- Único shutdown possível neste estado:
 SHUTDOWN ABORT;
@@ -200,8 +201,8 @@ STARTUP;
 -- ORA-00205: error in identifying control file, check alert log for more info
 ```
 
-> 📸 **Print 06** — `06-shutdown-immediate-falha-abort-necessario.png`  
-> Capturar: a sequência de três tentativas — `SHUTDOWN IMMEDIATE` falhando com o mesmo `ORA-00210`, depois `SHUTDOWN ABORT` funcionando, e por fim `STARTUP` retornando `ORA-00205`. Esse print conta a história completa do diagnóstico em uma única captura.
+> <img width="637" height="331" alt="image" src="https://github.com/user-attachments/assets/2279be81-933c-492a-a714-e5227f25d3a3" />
+
 
 Recuperação por cópia binária — o backup feito anteriormente resolve em segundos:
 
@@ -227,10 +228,10 @@ STARTUP;
 -- Database mounted / Database opened
 ```
 
-> 📸 **Print 07** — `07-recuperacao-mount-open-sucesso.png`  
-> Capturar: a sequência `ALTER DATABASE MOUNT` → `ALTER DATABASE OPEN` → restart completo com `Database mounted` / `Database opened`. Par direto com o Print 06 — mostra a resolução do incidente.
+> <img width="526" height="163" alt="image" src="https://github.com/user-attachments/assets/9c25f316-2ab5-4bae-becf-652ff831f84b" />
 
-> ✅ Banco recuperado com todos os control files sincronizados. Tempo de resolução: ~5 minutos.
+
+> Banco recuperado com todos os control files sincronizados. 
 
 ---
 
@@ -258,8 +259,8 @@ STARTUP;
 -- (banco parou na fase MOUNT — não conseguiu abrir nenhum control file)
 ```
 
-> 📸 **Print 08** — `08-startup-nomount-ora-00205-perda-total.png`  
-> Capturar: a saída do `STARTUP` parando em `ORACLE instance started` seguido do `ORA-00205`. Este print marca o início do pior cenário do lab — vale destacar no README como o "antes" da recuperação mais complexa.
+> <img width="619" height="188" alt="image" src="https://github.com/user-attachments/assets/55a564d1-fb4f-410e-a4d1-4bd7441f70ae" />
+
 
 > 💡 Neste momento o banco está em estado **NOMOUNT** — a instância está ativa (SGA alocada, processos de background rodando), mas o banco não está montado. Isso é suficiente para executar `CREATE CONTROLFILE`.
 
@@ -276,12 +277,14 @@ view alert_orcl.log   # identifica o nome do arquivo .trc gerado
 view /u01/app/oracle/diag/rdbms/orcl/orcl/trace/orcl_ora_XXXX.trc
 ```
 
-> 📸 **Print 09** — `09-alert-log-localizando-arquivo-trace.png`  
-> Capturar: o Alert Log aberto mostrando a referência ao arquivo `.trc` gerado pelo `BACKUP CONTROLFILE TO TRACE`. Demonstra a habilidade de navegar pelos arquivos de diagnóstico do Oracle — frequentemente esquecida em portfólios júnior.
+> <img width="556" height="39" alt="image" src="https://github.com/user-attachments/assets/4de6d4f3-f632-4526-a31b-f56e65871885" />
+
+> <img width="857" height="619" alt="image" src="https://github.com/user-attachments/assets/00604db8-8386-4983-b0ea-54cb8f9edecb" />
+
 
 ```sql
 -- Recriar o control file com todos os datafiles e redo logs do ambiente
-CREATE CONTROLFILE REUSE DATABASE "ORCL" RESETLOGS NOARCHIVELOG
+ CREATE CONTROLFILE REUSE DATABASE "ORCL" NORESETLOGS  NOARCHIVELOG
     MAXLOGFILES 16
     MAXLOGMEMBERS 3
     MAXDATAFILES 1024
@@ -289,17 +292,13 @@ CREATE CONTROLFILE REUSE DATABASE "ORCL" RESETLOGS NOARCHIVELOG
     MAXLOGHISTORY 292
 LOGFILE
   GROUP 1 '/u02/oradata/ORCL/redo01.log'  SIZE 200M BLOCKSIZE 512,
-  GROUP 2 '/u02/oradata/ORCL/redo02.log'  SIZE 200M BLOCKSIZE 512,
+  GROUP 2 (
+    '/u02/oradata/ORCL/redo02.log',
+    '/home/oracle/onlinelogs/g2redo2.rdo'
+  ) SIZE 200M BLOCKSIZE 512,
   GROUP 3 '/u02/oradata/ORCL/redo03.log'  SIZE 200M BLOCKSIZE 512,
-  GROUP 4 '/u02/oradata/ORCL/onlinelog/o1_mf_4_o3p4fcdn_.log'  SIZE 100M BLOCKSIZE 512,
-  GROUP 5 (
-    '/home/oracle/oradata/log1c.log',
-    '/u02/oradata/log2c.log'
-  ) SIZE 50M BLOCKSIZE 512,
-  GROUP 6 (
-    '/home/oracle/oradata/ORCL/onlinelog/o1_mf_6_o3p4p0q6_.log',
-    '/u02/oradata/ORCL/onlinelog/o1_mf_6_o3p4p0s4_.log'
-  ) SIZE 100M BLOCKSIZE 512
+  GROUP 10 '/u02/oradata/ORCL/g10redo2.rdo'  SIZE 200M BLOCKSIZE 512
+  2    3    4    5    6    7    8    9   10   11   12   13   14   15  -- STANDBY LOGFILE
 DATAFILE
   '/u02/oradata/ORCL/system01.dbf',
   '/u02/oradata/ORCL/sysaux01.dbf',
@@ -308,21 +307,15 @@ DATAFILE
   '/u02/oradata/ORCL/pdbseed/sysaux01.dbf',
   '/u02/oradata/ORCL/users01.dbf',
   '/u02/oradata/ORCL/pdbseed/undotbs01.dbf',
-  '/u02/oradata/ORCL/orclpdb/system01.dbf',
-  '/u02/oradata/ORCL/orclpdb/sysaux01.dbf',
-  '/u02/oradata/ORCL/orclpdb/undotbs01.dbf',
-  '/u02/oradata/ORCL/orclpdb/users01.dbf',
-  '/u02/oradata/my_datafile1.dbf',
-  '/u02/oradata/my_datafile2.dbf',
-  '/u02/oradata/ORCL/datafile/o1_mf_teste_o3p063jl_.dbf',
-  '/u02/oradata/ORCL/datafile/o1_mf_teste_o3p06lwy_.dbf',
-  '/u02/oradata/ORCL/datafile/o1_mf_teste2_o3p07ovx_.dbf'
-CHARACTER SET AL32UTF8;
+  '/u02/oradata/ORCL/ORCLPDB/system01.dbf',
+  '/u02/oradata/ORCL/ORCLPDB/sysaux01.dbf',
+  '/u02/oradata/ORCL/ORCLPDB/undotbs01.dbf',
+  '/u02/oradata/ORCL/ORCLPDB/users01.dbf'
+CHARACTER SET AL32UTF8 ;
 -- Control file created.
 ```
 
-> 📸 **Print 10** — `10-create-controlfile-control-file-created.png`  
-> Capturar: a execução completa do `CREATE CONTROLFILE` terminando em `Control file created.`. Este é o print mais técnico e impressionante do lab inteiro — poucos DBAs júnior conseguem mostrar essa operação documentada com sucesso.
+> <img width="730" height="589" alt="image" src="https://github.com/user-attachments/assets/99b3c0b4-7cdb-404a-a49f-3774c7fa694b" />
 
 > 💡 **Por que todos os datafiles precisam estar listados?** O `CREATE CONTROLFILE` reconstrói o mapa completo da estrutura física. Qualquer datafile omitido ficará invisível para o Oracle — o tablespace correspondente ficará OFFLINE ou inacessível após a abertura.
 
@@ -331,23 +324,7 @@ CHARACTER SET AL32UTF8;
 ### 4.3 Abrindo o banco após CREATE CONTROLFILE
 
 ```sql
--- Tentativa sem a opção obrigatória
 ALTER DATABASE OPEN;
--- ORA-01589: must use RESETLOGS or NORESETLOGS option for database open
-
--- RESETLOGS é obrigatório após CREATE CONTROLFILE
-ALTER DATABASE OPEN RESETLOGS;
--- Database altered.
-```
-
-> 📸 **Print 11** — `11-ora-01589-resetlogs-obrigatorio.png`  
-> Capturar: o erro `ORA-01589` seguido do `ALTER DATABASE OPEN RESETLOGS` bem-sucedido. Mostra que você entende por que o RESETLOGS é exigido nesse contexto específico.
-
-O PDB não abre automaticamente após RESETLOGS:
-
-```sql
-SHOW PDBS;
--- ORCLPDB: MOUNTED (não abriu)
 
 ALTER PLUGGABLE DATABASE ALL OPEN;
 -- Pluggable database altered.
@@ -356,8 +333,8 @@ SHOW PDBS;
 -- ORCLPDB: READ WRITE NO  ✅
 ```
 
-> 📸 **Print 12** — `12-pdb-mounted-para-read-write.png`  
-> Capturar: os dois resultados do `SHOW PDBS` — antes (`MOUNTED`) e depois (`READ WRITE`) do `ALTER PLUGGABLE DATABASE ALL OPEN`. Par antes/depois claro para quem revisar o lab.
+> <img width="530" height="219" alt="image" src="https://github.com/user-attachments/assets/eb4b1ad6-40d4-4e1c-87ee-e60d176bf88e" />
+
 
 ---
 
@@ -383,10 +360,6 @@ ALTER TABLESPACE TEMP ADD TEMPFILE '/u02/oradata/ORCL/orclpdb/temp01.dbf' REUSE;
 -- Voltar ao CDB$ROOT
 ALTER SESSION SET CONTAINER = "CDB$ROOT";
 
--- Restaurar tempfile do tablespace criado nos labs anteriores
-ALTER TABLESPACE TEMPTBS_1 ADD TEMPFILE
-    '/u02/oradata/ORCL/datafile/o1_mf_temptbs__o3p0bkvy_.tmp'
-    SIZE 104857600 REUSE AUTOEXTEND ON NEXT 104857600 MAXSIZE 32767M;
 
 -- Confirmar tempfiles restaurados
 SELECT FILE_NAME FROM DBA_TEMP_FILES;
@@ -395,12 +368,11 @@ SELECT FILE_NAME FROM DBA_TEMP_FILES;
 ```
 FILE_NAME
 --------------------------------------------------------
-/u02/oradata/ORCL/datafile/o1_mf_temptbs__o3p0bkvy_.tmp
 /u02/oradata/ORCL/temp01.dbf
 ```
 
-> 📸 **Print 13** — `13-dba-temp-files-restaurados.png`  
-> Capturar: o resultado do `SELECT FILE_NAME FROM DBA_TEMP_FILES` confirmando os dois tempfiles restaurados. Esta é a etapa que mais DBAs júnior esquecem — vale destacar como evidência de atenção ao detalhe.
+> <img width="370" height="231" alt="image" src="https://github.com/user-attachments/assets/457c8f4d-7c86-4e6a-94ad-6ba20bfea5c8" />
+
 
 Reiniciar para confirmar que o ambiente subiu limpo após toda a recuperação:
 
@@ -411,54 +383,17 @@ ALTER PLUGGABLE DATABASE ALL OPEN;
 -- ORCLPDB: READ WRITE NO  ✅
 ```
 
-> 📸 **Print 14** — `14-restart-final-ambiente-limpo.png`  
-> Capturar: o restart completo final com `Database mounted` / `Database opened` e `SHOW PDBS` confirmando `READ WRITE`. Este é o print de fechamento do lab — prova que toda a recuperação foi bem-sucedida e o ambiente está estável.
+> <img width="532" height="165" alt="image" src="https://github.com/user-attachments/assets/b1768803-42a5-46e3-9f3a-d305686ddcd8" />
 
-> ✅ Recuperação completa concluída. O banco foi recriado a partir do zero usando o script de trace — sem nenhum backup binário disponível.
+> Recuperação completa concluída. O banco foi recriado a partir do zero usando o script de trace — sem nenhum backup binário disponível.
 
 ---
 
 ## 5. Erros encontrados e como resolvi
 
-### Erro 1 — SHOQ PARAMETER / sqkplus (erros de digitação)
-
-```
-SP2-0734: unknown command beginning "SHOQ PARAM..."
--bash: sqkplus: command not found
-```
-
-**Causa:** erros de digitação no início da sessão.  
-**Solução:** redigitar os comandos corretamente.  
-**Aprendizado:** erros de digitação acontecem — documentá-los é mais honesto do que omiti-los.
-
 ---
 
-### Erro 2 — ORA-01034 ao executar SHOW PARAMETER com instância parada
-
-```
-ORA-01034: ORACLE not available
-```
-
-**Causa:** a instância estava parada (`Connected to an idle instance`). Qualquer comando que acesse o dicionário falha.  
-**Solução:** `STARTUP` antes de continuar.  
-**Aprendizado:** ao conectar com `sqlplus / as sysdba`, verificar sempre o estado com `SELECT STATUS FROM V$INSTANCE` ou observar a mensagem de conexão.
-
----
-
-### Erro 3 — ORA-00905 no backup em trace
-
-```
-ALTER DATABASE BACKUP TO TRACE;
-ORA-00905: missing keyword
-```
-
-**Causa:** a palavra `CONTROLFILE` é obrigatória na sintaxe.  
-**Solução:** `ALTER DATABASE BACKUP CONTROLFILE TO TRACE;`  
-**Aprendizado:** a sintaxe completa é `ALTER DATABASE BACKUP CONTROLFILE TO { 'arquivo' | TRACE }`.
-
----
-
-### Erro 4 — ORA-01119 ao criar tablespace sem especificar SIZE
+### Erro 1 — ORA-01119 ao criar tablespace sem especificar SIZE
 
 ```
 CREATE TABLESPACE TESTE_CTL DATAFILE '/u02/oradata/my_datafile5.dbf';
@@ -472,7 +407,7 @@ ORA-17610: file does not exist and no size specified
 
 ---
 
-### Erro 5 — ORA-00210 e SHUTDOWN IMMEDIATE inoperável
+### Erro 2 — ORA-00210 e SHUTDOWN IMMEDIATE inoperável
 
 ```
 ORA-00210: cannot open the specified control file
@@ -485,7 +420,7 @@ ORA-00202: control file: '/u02/oradata/ORCL/control01.ctl'
 
 ---
 
-### Erro 6 — ORA-01589 após CREATE CONTROLFILE
+### Erro 3 — ORA-01589 após CREATE CONTROLFILE
 
 ```
 ALTER DATABASE OPEN;
@@ -495,19 +430,6 @@ ORA-01589: must use RESETLOGS or NORESETLOGS option for database open
 **Causa:** após `CREATE CONTROLFILE`, o Oracle exige que a opção de abertura seja declarada explicitamente.  
 **Solução:** `ALTER DATABASE OPEN RESETLOGS;`  
 **Aprendizado:** `RESETLOGS` reinicia a sequência de log — sempre faça backup completo do banco imediatamente após um `OPEN RESETLOGS`.
-
----
-
-### Erro 7 — mv com aviso de SELinux
-
-```bash
-mv /u02/oradata/ORCL/control02.ctl /home/oracle/ct_copies/control02.ctl
-mv: setting attribute 'security.selinux' for 'security.selinux': Operation not permitted
-```
-
-**Causa:** o SELinux não permite mover atributos de contexto de segurança entre sistemas de arquivo com políticas diferentes.  
-**Resultado:** o arquivo foi movido com sucesso — o aviso é sobre o atributo de segurança, não sobre o arquivo em si.  
-**Aprendizado:** em ambientes com SELinux ativo, `mv` entre filesystems diferentes pode gerar esse aviso. Verificar se o arquivo chegou ao destino com `ls`.
 
 ---
 
@@ -541,4 +463,3 @@ O control file não registra tempfiles — apenas datafiles permanentes. Após `
 
 ---
 
-Data planejada: conforme calendário 1z0-082

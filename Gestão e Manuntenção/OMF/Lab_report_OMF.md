@@ -1,7 +1,7 @@
 # LAB_REPORT — Lab 02: Oracle Managed Files (OMF)
 
 **Data de execução:** 25/06/2026  
-**Ambiente:** Oracle Database 19c Enterprise Edition — Oracle Linux 9.7 
+**Ambiente:** Oracle Database 19c Enterprise Edition — Oracle Linux 7.9 
 
 ---
 

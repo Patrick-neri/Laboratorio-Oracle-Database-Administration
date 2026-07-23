@@ -75,5 +75,7 @@ Data Guard/
 ---
 
 ## Referências
+- Power Tuning - https://www.youtube.com/watch?v=s_WPsXIKCaQ
 - [Oracle Docs — Data Guard Concepts and Administration (19c)](https://docs.oracle.com/en/database/oracle/oracle-database/19/sbydb/index.html)
 - [Oracle Docs — RMAN DUPLICATE for standby](https://docs.oracle.com/en/database/oracle/oracle-database/19/bradv/duplicating-databases.html)
+- DBAOCM
